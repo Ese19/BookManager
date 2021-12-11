@@ -30,6 +30,9 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+// Migrate to cloud
+app.Services.CreateScope().ServiceProvider.GetRequiredService<AppDbContext>().Database.Migrate();
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
