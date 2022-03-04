@@ -1,6 +1,9 @@
+using System.Text;
 using System.Text.Json.Serialization;
 using BookManager.Data;
 using BookManager.Models;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -28,6 +31,30 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// jwt authentication
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, jwt =>
+       {
+            jwt.SaveToken = true;
+            jwt.TokenValidationParameters = new TokenValidationParameters
+              {
+               ValidateIssuer = false,
+               ValidateAudience = false,
+               ValidateLifetime = true,
+               ValidateIssuerSigningKey = true,
+               RequireExpirationTime = false,
+               IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("Jwt__Key", EnvironmentVariableTarget.Machine)))   
+            //    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+
+              };
+       });
+
+// identity configuration
+
+builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
+                    .AddEntityFrameworkStores<AppDbContext>();
+
+
 var app = builder.Build();
 
 // Migrate to cloud
@@ -35,12 +62,17 @@ app.Services.CreateScope().ServiceProvider.GetRequiredService<AppDbContext>().Da
 
 // Configure the HTTP request pipeline.
 app.UseSwagger();
-app.UseSwaggerUI();
+app.UseSwaggerUI(options => {
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
+    options.RoutePrefix = string.Empty;
+}
+    
+);
 
 
 app.UseHttpsRedirection();
 
-
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
